@@ -31,6 +31,14 @@ const userSchema = new Schema({
     is_verified_phone_number: {
         type: Boolean,
         default: false
+    },
+    is_supplier: {
+        type: Boolean,
+        default: false
+    },
+    is_admin: {
+        type: Boolean,
+        default: false,
     }
 }, { timestamps: true })
 

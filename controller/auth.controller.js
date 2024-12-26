@@ -7,16 +7,9 @@ const { generate_jwt_token, verify_jwt_token, generate_otp } = require("../utils
 const register_user = async (req, res) => {
     try {
 
-        // joi valiation 
-        const { error, value } = register_validation_schema.validate(req.body)
-
-        if (error?.message) {
-            return validation_error(res, error.message)
-        }
-
         // check if user is exist or not
         const find_user = await User.findOne({
-            email: value.email
+            email: req.body.email
         })
 
         if (find_user) {
@@ -25,16 +18,16 @@ const register_user = async (req, res) => {
 
         // create new user
         await User.create({
-            email: value.email,
-            last_name: value.last_name,
-            first_name: value.first_name
+            email: req.body.email,
+            last_name: req.body.last_name,
+            first_name: req.body.first_name
         })
 
         // TODO SEND EMAIL FOR VERIFICATION LINK
         // GENERATING TEMP TOKEN FOR
         // valid for 5 min
         const token = generate_jwt_token({
-            email: value.email,
+            email: req.body.email,
             is_verified: false
         }, 500000)
 
@@ -48,15 +41,9 @@ const register_user = async (req, res) => {
 // ================================ LOGIN ================================
 const login_user = async (req, res) => {
     try {
-        // joi validation
-        const { error, value } = login_validation_schema.validate(req.body)
-
-        if (error?.message) {
-            return validation_error(res, error.message)
-        }
 
         // finding iser
-        const find_user = await User.findOne({ email: value.email })
+        const find_user = await User.findOne({ email: req.body.email })
 
         // checking if user email is verified or not
         if (!find_user.is_verified_email) {
@@ -69,12 +56,12 @@ const login_user = async (req, res) => {
 
         // save otp and otp send time 
         await User.updateOne({
-            email: value.email
+            email: req.body.email
         }, { $set: { otp, otp_send_time } })
 
         // generating token 
         const token = generate_jwt_token({
-            email: value.email,
+            email: req.body.email,
             is_verified: false
         })
         return success_response(res, "Otp sent to your register email address", { token })
@@ -110,17 +97,10 @@ const verify_email_address = async (req, res) => {
 const resend_verification_link = async (req, res) => {
     try {
 
-        // joi validation
-        const { error, value } = login_validation_schema.validate(req.body)
-
-        if (error?.message) {
-            return validation_error(res, error.message)
-        }
-
         // TODO SEND MAIL FOR VERIFICATION LINK
         // valid for 5 min
         const token = generate_jwt_token({
-            email: value.email,
+            email: req.body.email,
             is_verified: false
         }, 500000)
 
@@ -135,13 +115,6 @@ const resend_verification_link = async (req, res) => {
 const verify_otp = async (req, res) => {
     try {
         const { email } = req.user
-
-        // joi validation
-        const { error, value } = verify_otp_schema.validate({ otp: String(req.body.otp) })
-
-        if (error?.message) {
-            return validation_error(res, error.message)
-        }
 
         // find user
         const user = await User.findOne({ email })
@@ -158,7 +131,7 @@ const verify_otp = async (req, res) => {
 
         // generate actual token
         const token = generate_jwt_token({
-            email: value.email,
+            email: email,
             is_verified: true,
             id: user._id
         })
