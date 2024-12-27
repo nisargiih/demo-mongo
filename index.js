@@ -8,7 +8,7 @@ app.use(cors({
     origin: "*"
 }))
 app.use(express.json())
-
+app.use('/uploads', express.static('uploads'))
 app.use("/api", require("./route/route"))
 
 

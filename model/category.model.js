@@ -7,6 +7,10 @@ const categorySchema = new Schema({
     },
     category_img: {
         type: String
+    },
+    category_available: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true })
 

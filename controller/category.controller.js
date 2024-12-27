@@ -1,29 +1,51 @@
 const Category = require("../model/category.model")
-const { error_response, success_message } = require("../utils/common.response")
+const { error_response, success_message, custom_error_response, success_response } = require("../utils/common.response")
+const fs = require('fs')
 
-const create_category = async (req, res) => {
+const create_category = async (req, res, next) => {
     try {
-        const { category_name, category_img } = req.body
+        const { category_name } = req.body
+        const check_if_category_exist = await Category.findOne({ category_name })
 
-        await Category.create({
-            category_name,
-            category_img
-        })
+        if (check_if_category_exist) {
+            req.error_message = "EXIST"
+            return next()
+        }
+
+        const payload = {
+            category_name: category_name
+        }
+
+        if (req?.file) {
+            payload.category_img = req.file.path
+        }
+        await Category.create(payload)
 
         return success_message(res, "Category created successfully")
     } catch (error) {
-        return error_response(res, error)
+        next()
     }
 }
 
 const update_category = async (req, res) => {
     try {
-        const { category_name, category_img, _id } = req.body
+        const { category_name, _id } = req.body
+        const find_previous_category = await Category.findById(_id)
 
+        if (find_previous_category?.category_img && req?.file) {
+            fs.unlink(find_previous_category.category_img, (err) => {
+                return custom_error_response(res, "Something went wrong", 500)
+            })
+        }
+        const payload = {
+            category_name: category_name
+        }
+
+        if (req?.file) {
+            payload.category_img = req?.file?.file
+        }
         await Category.updateOne({ _id }, {
-            $set: {
-                category_name, category_img
-            }
+            $set: payload
         })
 
         return success_message(res, "Category updated successfully")
@@ -34,8 +56,14 @@ const update_category = async (req, res) => {
 
 const delete_category = async (req, res) => {
     try {
-        const { _id } = req.body
+        const { _id } = req.params
+        const find_previous_category = await Category.findById(_id)
 
+        if (find_previous_category?.category_img) {
+            fs.unlink(find_previous_category.category_img, (err) => {
+                return custom_error_response(res, err?.message ?? "Something went wrong", 500)
+            })
+        }
         await Category.findByIdAndDelete(_id)
 
         return success_message(res, "Category deleted successfully")
@@ -46,11 +74,21 @@ const delete_category = async (req, res) => {
 
 const all_category = async (req, res) => {
     try {
-        const { limit, search, offset } = req.body
+        const { limit, search, offset, _id } = req.body
+        let category = null
+        if (_id) {
+            category = await Category.findById(_id)
+        } else {
+            const payload = {}
+            if (search) {
+                payload.category_name = {
+                    $regex: search
+                }
+            }
+            category = await Category.find(payload).limit(limit).skip(offset)
+        }
 
-        const category = await Category.find({ category_name: { $regex: search } }).limit(limit).skip(offset)
-        
-        console.log(category)
+        return success_response(res, "", { data: category })
     } catch (error) {
         return error_response(res, error)
     }
