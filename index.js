@@ -12,6 +12,13 @@ app.use('/uploads', express.static('uploads'))
 app.use("/api", require("./route/route"))
 
 
+app.use((error, req, res, next) => {
+    return res.status(422).json({
+        status: false,
+        message: error?.message || "Something went wrong"
+    })
+})
+
 app.listen(process.env.PORT, () => console.log(`server is running on ${process.env.PORT}`))
 
 connect_database()

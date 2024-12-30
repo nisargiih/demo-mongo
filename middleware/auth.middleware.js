@@ -58,7 +58,7 @@ const user_middleware = async (req, res, next) => {
         }
 
         if (!user_data?.is_verified) {
-            return custom_error_response(res, "Your account is not verified", 401)
+            return custom_error_response(res, "You are not login", 401)
         }
 
         const user = await User.findOne({ email: user_data.email })
@@ -72,7 +72,7 @@ const user_middleware = async (req, res, next) => {
     }
 }
 
-const admin_middleware = async () => {
+const admin_middleware = async (req, res, next) => {
     try {
 
         // Getting token
@@ -94,7 +94,7 @@ const admin_middleware = async () => {
 
         // Check is user mail id is verified or not
         if (!user_data?.is_verified) {
-            return custom_error_response(res, "Your account is not verified", 401)
+            return custom_error_response(res, "You are not login", 401)
         }
 
         // Getting user data 
@@ -102,7 +102,7 @@ const admin_middleware = async () => {
 
         // Check if user is admin 
         if (!user?.is_admin) {
-            return custom_error_response(res, "Invalid token", 401)
+            return custom_error_response(res, "You are not allowed to perform this action", 401)
         }
 
         // set token data in req.user parameter
@@ -114,7 +114,7 @@ const admin_middleware = async () => {
     }
 }
 
-const supplier_middleware = async () => {
+const supplier_middleware = async (req, res, next) => {
     try {
 
         // Getting token

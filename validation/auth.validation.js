@@ -27,9 +27,9 @@ const login_validation_schema = Joi.object({
 
 // =============================== VERIFY OTP VALIDATION SCHEMA ===============================
 const verify_otp_schema = Joi.object({
-    otp: Joi.string().min(6).required().messages({
-        "string.empty": "Otp is required",
-        "string.min": "Invalid otp length",
+    otp: Joi.number().min(6).required().messages({
+        "number.empty": "Otp is required",
+        "number.min": "Invalid otp length",
         "any.required": "Otp is required"
     })
 })

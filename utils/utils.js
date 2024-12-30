@@ -1,22 +1,32 @@
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
 
 const generate_jwt_token = (data, expiry) => {
-    const options = {};
-    if (expiry) {
-        options.expiresIn = expiry;
-    }
+  const options = {};
+  if (expiry) {
+    options.expiresIn = expiry;
+  }
 
-    const token = jwt.sign(data, process.env.JWT_SECRET, options)
+  const token = jwt.sign(data, process.env.JWT_SECRET, options);
 
-    return token
-}
+  return token;
+};
 
 const verify_jwt_token = (token) => {
-    const data = jwt.verify(token, process.env.JWT_SECRET)
-    return data
-}
+  const data = jwt.verify(token, process.env.JWT_SECRET);
+  return data;
+};
 
 const generate_otp = () => {
-    return Math.floor(Math.random() * 10000000)
-}
-module.exports = { generate_jwt_token, verify_jwt_token, generate_otp }
+  return Math.floor(Math.random() * 10000000);
+};
+
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+module.exports = {
+  generate_jwt_token,
+  verify_jwt_token,
+  generate_otp,
+  asyncHandler,
+};
