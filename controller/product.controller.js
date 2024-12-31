@@ -6,12 +6,12 @@ const {
 const { asyncHandler } = require("../utils/utils");
 
 const create_product = asyncHandler(async (req, res) => {
-  const { product_name, product_img, product_price, product_discount } =
+  const { product_name, product_price, product_discount } =
     req.body;
 
   await Product.create({
     product_name,
-    product_img,
+    product_img : (req?.files || []).map((file) => file.path),
     product_price,
     product_discount,
   });
@@ -58,7 +58,7 @@ const delete_product = asyncHandler(async (req, res) => {
 const all_product = asyncHandler(async (req, res) => {
   const { _id, limit = 10, page = 1, search } = req.body;
   const offset = (page - 1) * limit;
-  const product = null;
+  let product = null;
   if (_id) {
     product = await Product.findById(_id);
   } else {

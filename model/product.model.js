@@ -7,7 +7,7 @@ const productSchema = new Schema(
       require: true,
     },
     product_img: {
-      type: String,
+      type: [String],
     },
     product_price: {
       type: Number,

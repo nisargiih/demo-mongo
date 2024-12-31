@@ -12,6 +12,7 @@ const file_path = {
 };
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
+    console.log(file);
     cb(null, file_path[file.fieldname]);
   },
   filename: (req, file, cb) => {
@@ -45,7 +46,7 @@ const upload_category_img = (req, res, next) => {
       if (err.code === "LIMIT_FILE_SIZE") {
         return custom_error_response(res, "File size should be less than 2 MB");
       } else {
-        return error_response(res, err.message || "File upload error");
+        return custom_error_response(res, err.message || "File upload error");
       }
     }
 
@@ -53,6 +54,27 @@ const upload_category_img = (req, res, next) => {
       req.local = req.file.path;
     }
 
+    next();
+  });
+};
+
+const upload_product_img = (req, res, next) => {
+  const upload_product = upload.array("product_img", 4);
+
+  upload_product(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return custom_error_response(res, "File size should be less than 2 MB");
+      } else if (err.code === "LIMIT_UNEXPECTED_FILE") {
+        return custom_error_response(res, "Please upload only 4 photes ");
+      } else {
+        return custom_error_response(res, err.message || "File upload error");
+      }
+    }
+
+    if (req.file) {
+      req.local = req.files;
+    }
     next();
   });
 };
@@ -72,4 +94,18 @@ const revert_uploaded_file_if_error = (req, res, next) => {
 
   return error_response(res, error);
 };
-module.exports = { upload_category_img, revert_uploaded_file_if_error };
+
+// const revert_uploaded_product_img_if_error = (req,res,next) => {
+//   if(req?.local){
+//     fs.unlink(req.local, (err) => {
+//       if (err) {
+//         return custom_error_response(res, "Something went wrong", 500);
+//       }
+//     });
+//   }
+// }
+module.exports = {
+  upload_category_img,
+  revert_uploaded_file_if_error,
+  upload_product_img,
+};
