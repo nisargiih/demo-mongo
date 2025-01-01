@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const Product = require("../model/product.model");
 const {
   success_message,
@@ -8,13 +9,15 @@ const { asyncHandler } = require("../utils/utils");
 const fs = require("fs");
 
 const create_product = asyncHandler(async (req, res) => {
-  const { product_name, product_price, product_discount } = req.body;
+  const { product_name, product_price, product_discount, category_id } =
+    req.body;
 
   await Product.create({
     product_name,
     product_img: (req?.files || []).map((file) => file.path),
     product_price,
     product_discount,
+    category_id,
   });
 
   return success_message(res, "Product created successfully");
@@ -28,6 +31,7 @@ const update_product = asyncHandler(async (req, res) => {
     product_discount,
     is_product_out_of_stock,
     product_image_delete = [],
+    category_id,
   } = req.body;
 
   const product = await Product.findById(_id);
@@ -55,6 +59,7 @@ const update_product = asyncHandler(async (req, res) => {
         product_price,
         product_discount,
         is_product_out_of_stock,
+        category_id,
       },
     }
   );
@@ -98,24 +103,46 @@ const delete_product = asyncHandler(async (req, res) => {
 });
 
 const all_product = asyncHandler(async (req, res) => {
-  const { _id, limit = 10, page = 1, search } = req.body;
+  const { _id, limit = 10, page = 1, search, category_id } = req.body;
   const offset = (page - 1) * limit;
   let product = null;
   if (_id) {
     product = await Product.findById(_id);
   } else {
-    const payload = {};
-    if (search) {
-      page.product_name = {
-        $regex: search,
-      };
+    const pipeline = [];
+
+    if (category_id) {
+      pipeline.push({
+        $match: {
+          category_id: mongoose.Types.ObjectId.createFromHexString(category_id),
+        },
+      });
     }
 
-    product = await Product.find(payload).limit(limit).skip(offset);
+    if (search) {
+      pipeline.push({
+        $match: {
+          product_name: {
+            $regex: search,
+          },
+        },
+      });
+    }
+
+    pipeline.push(
+      {
+        $skip: offset,
+      },
+      {
+        $limit: parseInt(limit),
+      }
+    );
+    product = await Product.aggregate(pipeline);
 
     return success_response(res, "", { data: product });
   }
 });
+
 module.exports = {
   create_product,
   update_product,

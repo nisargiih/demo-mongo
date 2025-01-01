@@ -49,9 +49,9 @@ const upload_category_img = (req, res, next) => {
         return custom_error_response(res, err.message || "File upload error");
       }
     }
-    const file = [];
+
     if (req.file) {
-      req.local = file.push(req.file.path);
+      req.local = [req.file.path];
     }
 
     next();

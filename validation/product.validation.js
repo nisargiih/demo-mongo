@@ -17,6 +17,10 @@ const create_product_schema = Joi.object({
   is_product_out_of_stock: Joi.boolean().messages({
     "boolean.empty": "Product stock value can't be empty",
   }),
+  category_id: Joi.string().required().messages({
+    "string.empty": "Category is required",
+    "any.required": "Category is required",
+  }),
 });
 
 const update_product_schema = Joi.object({
@@ -36,6 +40,10 @@ const update_product_schema = Joi.object({
   }),
   product_image_delete: Joi.array().messages({
     "array.empty": "Product delete can't be empty",
+  }),
+  category_id: Joi.string().required().messages({
+    "string.empty": "Category is required",
+    "any.required": "Category is required",
   }),
 });
 module.exports = {

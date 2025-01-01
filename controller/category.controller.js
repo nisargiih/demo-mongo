@@ -110,7 +110,17 @@ const all_category = async (req, res) => {
 
     let category = null;
     if (_id) {
-      category = await Category.findById(_id);
+      const pipeline = [
+        {
+          $lookup: {
+            from: "products",
+            localField: "_id",
+            foreignField: "category_id",
+            as: "product",
+          },
+        },
+      ];
+      category = await Category.aggregate(pipeline);
     } else {
       const payload = {};
       if (search) {
