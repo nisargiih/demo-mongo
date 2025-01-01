@@ -4,6 +4,7 @@ const fs = require("fs");
 const {
   custom_error_response,
   error_response,
+  validation_error,
 } = require("../utils/common.response");
 
 const file_path = {
@@ -12,7 +13,6 @@ const file_path = {
 };
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    console.log(file);
     cb(null, file_path[file.fieldname]);
   },
   filename: (req, file, cb) => {
@@ -49,9 +49,9 @@ const upload_category_img = (req, res, next) => {
         return custom_error_response(res, err.message || "File upload error");
       }
     }
-
+    const file = [];
     if (req.file) {
-      req.local = req.file.path;
+      req.local = file.push(req.file.path);
     }
 
     next();
@@ -72,40 +72,51 @@ const upload_product_img = (req, res, next) => {
       }
     }
 
-    if (req.file) {
-      req.local = req.files;
+    if (req?.files) {
+      req.local = req.files.map((file) => file.path);
     }
     next();
   });
 };
 
 const revert_uploaded_file_if_error = (req, res, next) => {
-  if (req?.local) {
-    fs.unlink(req.local, (err) => {
-      if (err) {
-        return custom_error_response(res, "Something went wrong", 500);
-      }
+  if (req?.local && Array.isArray(req?.local)) {
+    req?.local.forEach(async (img) => {
+      fs.unlink(img, (err) => {
+        if (err) {
+          return custom_error_response(res, "Something went wrong", 500);
+        }
+      });
     });
   }
 
-  if (req?.error_message === "EXIST") {
+  if (req?.error_message === "CATEGORY_EXIST_EXIST") {
     return custom_error_response(res, "Category alredy exist");
+  }
+
+  if (req?.error_message === "VALIDATION_ERROR") {
+    return validation_error(res, "Validation error");
   }
 
   return error_response(res, error);
 };
 
-// const revert_uploaded_product_img_if_error = (req,res,next) => {
-//   if(req?.local){
-//     fs.unlink(req.local, (err) => {
-//       if (err) {
-//         return custom_error_response(res, "Something went wrong", 500);
-//       }
-//     });
-//   }
-// }
+const revert_uploaded_product_img_if_error = (req, res, next) => {
+  if (req?.local && Array.isArray(req?.local)) {
+    req?.local.forEach(async (img) => {
+      fs.unlink(img, (err) => {
+        if (err) {
+          return custom_error_response(res, "Something went wrong", 500);
+        }
+      });
+    });
+  }
+
+  next();
+};
 module.exports = {
   upload_category_img,
   revert_uploaded_file_if_error,
   upload_product_img,
+  revert_uploaded_product_img_if_error,
 };

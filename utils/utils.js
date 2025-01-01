@@ -21,7 +21,9 @@ const generate_otp = () => {
 };
 
 const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
+  Promise.resolve(fn(req, res, next)).catch((err) => {
+    next(err);
+  });
 };
 
 module.exports = {

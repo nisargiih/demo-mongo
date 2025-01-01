@@ -13,7 +13,7 @@ const create_category = async (req, res, next) => {
     const check_if_category_exist = await Category.findOne({ category_name });
 
     if (check_if_category_exist) {
-      req.error_message = "EXIST";
+      req.error_message = "CATEGORY_EXIST_EXIST";
       return next();
     }
 
