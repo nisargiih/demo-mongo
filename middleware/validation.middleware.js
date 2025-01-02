@@ -13,12 +13,11 @@ const validate_response = (schema) => (req, res, next) => {
 
     const { error } = schema.validate(req.body);
     if (error?.message) {
-
       if (req?.local) {
         req.error_message = "VALIDATION_ERROR";
         return revert_uploaded_file_if_error(req, res, next);
       }
-      return validation_error(res, "Validation error");
+      return validation_error(res, error?.message || "Validation error");
     }
 
     next();

@@ -1,12 +1,6 @@
-const {
-  register_validation_schema,
-  login_validation_schema,
-  verify_otp_schema,
-} = require("../validation/auth.validation");
 const User = require("../model/user.model");
 const {
   error_response,
-  validation_error,
   success_message,
   success_response,
   custom_error_response,
