@@ -2,11 +2,13 @@ const User = require("../model/user.model");
 const {
   success_message,
   custom_error_response,
+  success_response,
 } = require("../utils/common.response");
 const { asyncHandler, generate_otp } = require("../utils/utils");
 
+// TODO UPDATE MOBILE NUMBER AND EMAIL
 const update_profile = asyncHandler(async (req, res) => {
-  const { first_name, last_name } = req.body;
+  const { first_name, last_name, phone_number } = req.body;
 
   const user = await User.findById(req.user._id);
 
@@ -14,16 +16,20 @@ const update_profile = asyncHandler(async (req, res) => {
     return custom_error_response(res, "User not found", 401);
   }
 
+  if (!user.is_verified_phone_number) {
+    return custom_error_response(res, "User not found");
+  }
+
   await User.findById(req?.user?._id, {
     first_name,
     last_name,
-    email,
     phone_number,
   });
 
   return success_message(res, "Profile updated successfully");
 });
 
+// TODO NEED TO THINK HOW TO UPDATE MOBILE NUMBER AND EMAIL
 const verify_email_or_phone_number = asyncHandler(async (req, res) => {
   const { phone_number, email } = req.body;
   const user = await User.findById(req?.user?._id);
@@ -89,13 +95,29 @@ const verify_otp_for_profile = asyncHandler(async (req, res) => {
   } else {
     payload.is_verified_email = true;
   }
-  console.log(false);
+
   await User.findByIdAndUpdate(req.user._id, payload);
 
   return success_message(res, "Verified successfully");
 });
+
+const user_list = asyncHandler(async (req, res) => {
+  const { limit = 10, search, page = 1 } = req.body;
+
+  const offset = (page - 1) * limit;
+  if (search) {
+    payload.category_name = {
+      $regex: search,
+    };
+  }
+  const user = await User.find(payload).limit(limit).skip(offset);
+
+  return success_response(res, "", { data: user });
+});
+
 module.exports = {
   update_profile,
   verify_email_or_phone_number,
   verify_otp_for_profile,
+  user_list,
 };
