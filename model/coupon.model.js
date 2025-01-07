@@ -4,7 +4,10 @@ const couponSchema = new Schema({
   coupon_code: {
     type: String,
     require: true,
-    require: true,
+    unique: true,
+  },
+  coupon_description: {
+    type: String,
   },
   discount_type: {
     type: String,
@@ -46,6 +49,14 @@ const couponSchema = new Schema({
   },
   expiry_date: {
     type: Date,
+  },
+  is_one_time_use: {
+    type: Boolean,
+    default: false,
+  },
+  min_value_order: {
+    type: Number,
+    default: null,
   },
 });
 

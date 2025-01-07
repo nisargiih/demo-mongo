@@ -1,6 +1,11 @@
 const Coupon = require("../model/coupon.model");
-const { success_message } = require("../utils/common.response");
+const {
+  success_message,
+  success_response,
+  custom_error_response,
+} = require("../utils/common.response");
 const { asyncHandler } = require("../utils/utils");
+const moment = require("moment");
 
 const create_coupon = asyncHandler(async (req, res) => {
   const {
@@ -13,7 +18,20 @@ const create_coupon = asyncHandler(async (req, res) => {
     is_active,
     start_date,
     expiry_date,
+    min_value_order,
+    coupon_description,
   } = req.body;
+
+  const coupon = await Coupon.findOne({
+    coupon_code,
+  });
+
+  if (coupon) {
+    return custom_error_response(res, "Coupon name is alreday exist");
+  }
+
+  const formatted_start_date = moment(start_date, "DD/MM/YYYY").toISOString();
+  const formatted_expiry_date = moment(expiry_date, "DD/MM/YYYY").toISOString();
 
   await Coupon.create({
     coupon_code,
@@ -23,8 +41,10 @@ const create_coupon = asyncHandler(async (req, res) => {
     min_discount,
     usage_limit,
     is_active,
-    start_date,
-    expiry_date,
+    start_date: formatted_start_date,
+    expiry_date: formatted_expiry_date,
+    min_value_order,
+    coupon_description,
   });
 
   return success_message(res, "Coupon created successfully");
@@ -42,7 +62,20 @@ const update_coupon = asyncHandler(async (req, res) => {
     is_active,
     start_date,
     expiry_date,
+    min_value_order,
+    coupon_description,
   } = req.body;
+
+  const coupon = await Coupon.findOne({
+    coupon_code,
+  });
+
+  if (coupon) {
+    return custom_error_response(res, "Coupon name is alreday exist");
+  }
+
+  const formatted_start_date = new Date(start_date).toISOString();
+  const formatted_expiry_date = new Date(expiry_date).toISOString();
 
   await Coupon.findOneAndUpdate(_id, {
     coupon_code,
@@ -52,8 +85,10 @@ const update_coupon = asyncHandler(async (req, res) => {
     min_discount,
     usage_limit,
     is_active,
-    start_date,
-    expiry_date,
+    start_date: formatted_start_date,
+    expiry_date: formatted_expiry_date,
+    min_value_order,
+    coupon_description,
   });
 
   return success_message(res, "Coupon updated successfully");
@@ -98,10 +133,104 @@ const list_coupon = asyncHandler(async (req, res) => {
       $lte: end_date,
     };
   }
+
+  if (Object.keys(match).length > 0) {
+    pipeline.push({
+      $match: match,
+    });
+  }
+
+  pipeline.push(
+    {
+      $skip: offset,
+    },
+    {
+      $limit: parseInt(limit),
+    }
+  );
+
+  const coupon = await Coupon.aggregate(pipeline);
+
+  return success_response(res, "", { data: coupon });
 });
 
+const apply_coupon = asyncHandler(async (req, res) => {
+  const { coupon_code, price } = req.body;
+
+  const coupon = await Coupon.findOne({
+    coupon_code,
+  });
+
+  if (!coupon || !coupon.is_active) {
+    return custom_error_response(res, "Please enter valid coupon");
+  }
+
+  if (coupon?.min_value_order && coupon.min_value_order < price) {
+    return custom_error_response(
+      res,
+      `The minimum order value for this offer is ${coupon.min_value_order}`
+    );
+  }
+
+  if (
+    coupon.expiry_date > new Date().getTime() ||
+    coupon.usage_limit >= coupon.used_count
+  ) {
+    return custom_error_response(res, "Coupon code is expired");
+  }
+
+  if (coupon.is_one_time_use) {
+    const is_used = coupon.user_used.find((id) => id === req?.user?._id);
+
+    if (is_used) {
+      return custom_error_response(res, "This coupon can only be used once");
+    }
+  }
+  const final_price = null;
+  let message = null;
+  if (coupon.discount_type === "PERCENTAGE") {
+    const discount_calculation = (price * coupon.discount_value) / 100;
+    const discount_price =
+      discount_calculation > coupon.max_discount
+        ? coupon.max_discount
+        : discount_calculation < coupon.min_discount
+        ? coupon.min_discount
+        : discount_calculation;
+
+    final_price = price - discount_price;
+    message = `Congratulations on your savings! You've saved ${discount_calculation} Rs on your order`;
+  }
+
+  if (coupon.discount_type === "FIXED") {
+    const discount_calculation = price - coupon.max_discount;
+
+    const discount_price =
+      discount_calculation > 0 ? discount_calculation : price;
+
+    final_price = price - discount_price;
+    message = `Congratulations on your savings! You've saved ${discount_calculation} Rs on your order`;
+  }
+
+  // TODO REMOVE THIS CODE IT WILL BE DONE AFTER PAYMENT
+  await Coupon.updateOne(
+    {
+      coupon_code: coupon_code,
+    },
+    {
+      $inc: {
+        used_count: 1,
+      },
+      $push: {
+        user_used: req.user._id,
+      },
+    }
+  );
+  return success_response(res, message, { price, final_price });
+});
 module.exports = {
   create_coupon,
   update_coupon,
   delete_coupon,
+  list_coupon,
+  apply_coupon,
 };
