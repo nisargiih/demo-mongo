@@ -34,14 +34,18 @@ const orderSchema = new Schema(
     },
     delivery_satus: {
       type: String,
-      enum: ["PENDING", "ACCEPTED", "SHIPPED", "DELIVERED", "CANCELLED"],
+      enum: [
+        "PENDING",
+        "ACCEPTED",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCEL_REQUEST",
+        "CANCELLED",
+      ],
       default: "PENDING",
       require: true,
     },
     order_date: {
-      type: Date,
-    },
-    delivery_date: {
       type: Date,
     },
     expected_delivery_day: {
@@ -54,9 +58,24 @@ const orderSchema = new Schema(
       default: "COD",
       require: true,
     },
-    payment_recived: {
+    payment_received: {
       type: Boolean,
       default: false,
+    },
+    is_pre_order: {
+      type: Boolean,
+      default: true,
+    },
+    discount_price: {
+      type: Number,
+    },
+    coupon_code: {
+      type: Schema.Types.ObjectId,
+      ref: "coupon",
+    },
+    delivery_address: {
+      type: Schema.Types.ObjectId,
+      ref: "address",
     },
   },
   { timestamps: true }

@@ -5,6 +5,7 @@ const {
   list_coupon,
   apply_coupon,
 } = require("../controller/coupon.controller");
+const { user_middleware } = require("../middleware/auth.middleware");
 const validate_response = require("../middleware/validation.middleware");
 const { create_coupon_schema } = require("../validation/coupon.validation");
 
@@ -22,6 +23,6 @@ route.put(
 );
 route.delete("/delete-coupon/:_id", delete_coupon);
 route.get("/all-coupon", list_coupon);
-route.post("/apply-coupon", apply_coupon);
+route.post("/apply-coupon", user_middleware, apply_coupon);
 
 module.exports = route;

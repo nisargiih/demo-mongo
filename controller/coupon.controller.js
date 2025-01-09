@@ -1,4 +1,5 @@
 const Coupon = require("../model/coupon.model");
+const Order = require("../model/order.model");
 const {
   success_message,
   success_response,
@@ -155,7 +156,15 @@ const list_coupon = asyncHandler(async (req, res) => {
 });
 
 const apply_coupon = asyncHandler(async (req, res) => {
-  const { coupon_code, price } = req.body;
+  const { coupon_code, order_id } = req.body;
+
+  const order = await Order.findById(order_id);
+
+  if (!order) {
+    return custom_error_response(res, "Order not found");
+  }
+
+  const price = order.total_price;
 
   const coupon = await Coupon.findOne({
     coupon_code,
@@ -165,7 +174,7 @@ const apply_coupon = asyncHandler(async (req, res) => {
     return custom_error_response(res, "Please enter valid coupon");
   }
 
-  if (coupon?.min_value_order && coupon.min_value_order < price) {
+  if (coupon?.min_value_order && coupon.min_value_order > price) {
     return custom_error_response(
       res,
       `The minimum order value for this offer is ${coupon.min_value_order}`
@@ -173,20 +182,22 @@ const apply_coupon = asyncHandler(async (req, res) => {
   }
 
   if (
-    coupon.expiry_date > new Date().getTime() ||
-    coupon.usage_limit >= coupon.used_count
+    moment(coupon.expiry_date).isBefore(moment()) ||
+    coupon.used_count >= coupon.usage_limit
   ) {
     return custom_error_response(res, "Coupon code is expired");
   }
 
   if (coupon.is_one_time_use) {
-    const is_used = coupon.user_used.find((id) => id === req?.user?._id);
+    const is_used = coupon.user_used.find(
+      (id) => id.toString() === (req?.user?._id).toString()
+    );
 
     if (is_used) {
       return custom_error_response(res, "This coupon can only be used once");
     }
   }
-  const final_price = null;
+  let final_price = null;
   let message = null;
   if (coupon.discount_type === "PERCENTAGE") {
     const discount_calculation = (price * coupon.discount_value) / 100;
@@ -198,34 +209,46 @@ const apply_coupon = asyncHandler(async (req, res) => {
         : discount_calculation;
 
     final_price = price - discount_price;
-    message = `Congratulations on your savings! You've saved ${discount_calculation} Rs on your order`;
+    message = `Congratulations on your savings! You've saved ${discount_price} Rs on your order`;
   }
 
   if (coupon.discount_type === "FIXED") {
-    const discount_calculation = price - coupon.max_discount;
-
-    const discount_price =
-      discount_calculation > 0 ? discount_calculation : price;
-
-    final_price = price - discount_price;
-    message = `Congratulations on your savings! You've saved ${discount_calculation} Rs on your order`;
+    final_price = price - coupon.discount_value;
+    message = `Congratulations on your savings! You've saved ${coupon.discount_value} Rs on your order`;
   }
 
   // TODO REMOVE THIS CODE IT WILL BE DONE AFTER PAYMENT
-  await Coupon.updateOne(
-    {
-      coupon_code: coupon_code,
-    },
-    {
-      $inc: {
-        used_count: 1,
-      },
-      $push: {
-        user_used: req.user._id,
-      },
-    }
-  );
+  // await Coupon.updateOne(
+  //   {
+  //     coupon_code: coupon_code,
+  //   },
+  //   {
+  //     $inc: {
+  //       used_count: 1,
+  //     },
+  //     $push: {
+  //       user_used: req.user._id,
+  //     },
+  //   }
+  // );
+
+  await Order.findByIdAndUpdate(order_id, {
+    discount_price: final_price,
+    coupon_code,
+  });
+
   return success_response(res, message, { price, final_price });
+});
+
+const remove_coupon_code = asyncHandler(async (req, res) => {
+  const { order_id } = req.body;
+
+  await Order.findByIdAndUpdate(order_id, {
+    coupon_code: null,
+    discount_price: null,
+  });
+
+  return success_response(res, "Coupon code removed successfully");
 });
 module.exports = {
   create_coupon,
@@ -233,4 +256,5 @@ module.exports = {
   delete_coupon,
   list_coupon,
   apply_coupon,
+  remove_coupon_code,
 };

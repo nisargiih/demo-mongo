@@ -25,10 +25,18 @@ const create_coupon_schema = Joi.object({
         "any.required": "Discount value is required",
       }),
     }),
-  max_discount: Joi.number().required().messages({
-    "number.empty": "Max discount is required",
-    "any.required": "Max discount is required",
-  }),
+  max_discount: Joi.number()
+    .required()
+    .when("discount_type", {
+      is: "PERCENTAGE",
+      then: Joi.required().messages({
+        "number.empty": "Max discount is required for percentage type",
+        "any.required": "Max discount is required for percentage type",
+      }),
+      otherwise: Joi.optional().messages({
+        "number.empty": "Max discount value is required111",
+      }),
+    }),
   min_discount: Joi.number()
     .when("discount_type", {
       is: "PERCENTAGE",
@@ -43,8 +51,9 @@ const create_coupon_schema = Joi.object({
     .messages({
       "number.empty": "Max discount is required",
     }),
-  min_value_order: Joi.number().messages({
+  min_value_order: Joi.number().required().messages({
     "number.empty": "Minimum order value is required",
+    "any.required": "Minimum order value is required",
   }),
   usage_limit: Joi.number().messages({
     "number.empty": "Usage limit is required",
